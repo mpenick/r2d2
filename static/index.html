@@ -1,0 +1,102 @@
+<html>
+	<head>
+		<style>
+			.forward:before {
+				background: url("images/forward.png") no-repeat scroll center center / 100% auto rgba(0, 0, 0, 0);
+				content: "";
+				display: inline-block;
+				height: 30px;
+				width: 30px;
+				position: relative;
+				vertical-align: middle;
+			}
+			.backward:before {
+				background: url("images/backward.png") no-repeat scroll center center / 100% auto rgba(0, 0, 0, 0);
+				content: "";
+				display: inline-block;
+				height: 30px;
+				width: 30px;
+				position: relative;
+				vertical-align: middle;
+			}
+			.left:before {
+				background: url("images/turn-left.png") no-repeat scroll center center / 100% auto rgba(0, 0, 0, 0);
+				content: "";
+				display: inline-block;
+				height: 30px;
+				width: 30px;
+				position: relative;
+				vertical-align: middle;
+			}
+			.right:before {
+				background: url("images/turn-right.png") no-repeat scroll center center / 100% auto rgba(0, 0, 0, 0);
+				content: "";
+				display: inline-block;
+				height: 30px;
+				width: 30px;
+				position: relative;
+				vertical-align: middle;
+			}
+		</style>
+	</head>
+	<body>
+		<script src="https://unpkg.com/apollo-client-browser@1.9.0"></script>
+
+        <table>
+            <tr><td></td><td><button onclick="forward()" class="button forward"></button></td><td></td></tr>
+			<tr><td><button onclick="left()" class="button left"></button></td><td></td><td><button onclick="right()" class="button right"></button></td></tr>
+			<tr><td></td><td><button onclick="backward()" class="button backward"></button></td><td></td></tr>
+		</table>
+		<div id="content"/>
+		<script>
+		function uuid() {
+  			return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+  			  (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+  			);
+		}
+		function forward() {
+			console.log("forward")
+			apolloClient.mutate({
+				mutation: Apollo.gql`mutation { move(type:FORWARD) }`
+			}).then(result => {
+				console.log(result)
+			})
+		}
+		function left() {
+			console.log("left")
+			apolloClient.mutate({
+				mutation: Apollo.gql`mutation { move(type:LEFT) }`
+			}).then(result => {
+				console.log(result)
+			})
+		}
+		function right() {
+			console.log("right")
+			apolloClient.mutate({
+				mutation: Apollo.gql`mutation { move(type:RIGHT) }`
+			}).then(result => {
+				console.log(result)
+			})
+		}
+		function backward() {
+			console.log("backward")
+			apolloClient.mutate({
+				mutation: Apollo.gql`mutation { move(type:BACKWARD) }`
+			}).then(result => {
+				console.log(result)
+			})
+		}
+		const apolloClient = new Apollo.lib.ApolloClient({
+		  networkInterface: Apollo.lib.createNetworkInterface({
+		    uri: 'http://localhost:8080/graphql',
+		    transportBatching: true,
+		  }),
+		  connectToDevTools: true,
+		})
+		if (!document.cookie) {
+			document.cookie = "user=" + uuid();
+		}
+		document.getElementById("content").innerHTML = document.cookie
+		</script>
+	</body>
+</html>

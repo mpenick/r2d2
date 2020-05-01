@@ -16,60 +16,19 @@ const robotID = "C5:DD:FB:6A:06:9E"
 const robotService = "d9d9e9e0-aa4e-4797-8151-cb41cedaf2ad"
 const robotBitsnap = "Bitsnap Control"
 
-type command struct {
-	cmd byte
-	data []byte
-}
+type Move int
+
+const (
+	Forward Move = iota
+	Backward
+	Left
+	Right
+)
 
 type Control struct {
-	cmds           chan command
+	cmds           chan Move
 	peripheral     gatt.Peripheral
 	characteristic *gatt.Characteristic
-}
-
-func (c *Control) SetBitsnap(n byte, value byte) {
-	c.cmds <- command{
-		cmd: 0x0A,
-		data: []byte{n, value},
-	}
-}
-
-func (c *Control) Motor1(value byte) {
-	c.SetBitsnap(0, value)
-}
-
-func (c *Control) Motor2(value byte) {
-	c.SetBitsnap(2, value)
-}
-
-func (c *Control) Servo(value byte) {
-	c.SetBitsnap(1, value)
-}
-
-func (c *Control) Reset() {
-	c.cmds <- command{
-		cmd: 0x0E,
-		data: []byte{0X7F, 0X7F, 0X7F},
-	}
-}
-
-func (c *Control) Red(value byte) {
-	c.LED(value, 0, 0)
-}
-
-func (c *Control) Green(value byte) {
-	c.LED(0, value, 0)
-}
-
-func (c *Control) Blue(value byte) {
-	c.LED(0, 0, value)
-}
-
-func (c *Control) LED(r byte, g byte, b byte) {
-	c.cmds <- command{
-		cmd: 0x09,
-		data: []byte{r, g, b},
-	}
 }
 
 func NewControl() (*Control, error) {
@@ -93,7 +52,7 @@ func NewControl() (*Control, error) {
 		}),
 		gatt.PeripheralConnected(func(p gatt.Peripheral, err error) {
 			ctrl := &Control{
-				cmds:           make(chan command, 100),
+				cmds:           make(chan Move, 100),
 				peripheral:     p,
 				characteristic: findBitsnapControl(p),
 			}
@@ -106,13 +65,29 @@ func NewControl() (*Control, error) {
 				error:   nil,
 			}
 
-			ctrl.Reset()
+			ctrl.red(1)
+			ctrl.reset()
 
-			for c := range ctrl.cmds {
-				err = ctrl.writeBLECmd(c.cmd, c.data)
-				if err != nil {
-					log.Printf("error processing command: %v", err)
+			for move := range ctrl.cmds {
+				switch move {
+				case Forward:
+					ctrl.motor2(0x89 + 59)
+					<-time.After(2 * time.Second)
+				case Backward:
+					ctrl.motor2(0x89 - 59)
+					<-time.After(2 * time.Second)
+				case Left:
+					ctrl.servo(0x7F + 64)
+					<-time.After(1 * time.Second)
+					ctrl.motor2(0x89 + 59)
+					<-time.After(1 * time.Second)
+				case Right:
+					ctrl.servo(0x7F - 64)
+					<-time.After(1 * time.Second)
+					ctrl.motor2(0x89 + 59)
+					<-time.After(1 * time.Second)
 				}
+				ctrl.reset()
 			}
 		}),
 		gatt.PeripheralDisconnected(func(p gatt.Peripheral, err error) {
@@ -140,6 +115,46 @@ func NewControl() (*Control, error) {
 	case <-time.After(5 * time.Second):
 		return nil, fmt.Errorf("timed out finding device")
 	}
+}
+
+func (c *Control) Move(m Move) {
+	c.cmds <- m
+}
+
+func (c *Control) setBitsnap(n byte, value byte) {
+	c.writeBLECmd(0x0A, []byte{n, value})
+}
+
+func (c *Control) motor1(value byte) {
+	c.setBitsnap(0, value)
+}
+
+func (c *Control) motor2(value byte) {
+	c.setBitsnap(2, value)
+}
+
+func (c *Control) servo(value byte) {
+	c.setBitsnap(1, value)
+}
+
+func (c *Control) reset() {
+	c.writeBLECmd(0x0E, []byte{0X89, 0X7F, 0X89})
+}
+
+func (c *Control) red(value byte) {
+	c.led(value, 0, 0)
+}
+
+func (c *Control) green(value byte) {
+	c.led(0, value, 0)
+}
+
+func (c *Control) blue(value byte) {
+	c.led(0, 0, value)
+}
+
+func (c *Control) led(r byte, g byte, b byte) {
+	c.writeBLECmd(0x09, []byte{r, g, b})
 }
 
 func (c *Control) writeBLECmd(cmd byte, data []byte) error {
