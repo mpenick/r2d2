@@ -52,7 +52,7 @@ var mutationType = graphql.NewObject(graphql.ObjectConfig{
 				},
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				//ctrl.Move(p.Args["type"].(control.Move))
+				ctrl.Move(p.Args["type"].(control.Move))
 				return make([]control.Move, 0), nil
 			},
 		},
@@ -67,18 +67,15 @@ var schema, _ = graphql.NewSchema(
 
 func main() {
 	var err error
-	//ctrl, err = control.NewControl()
+	ctrl, err = control.NewControl()
 	if err != nil {
 		log.Fatalf("unable to create robot control: %v", err)
 	}
 
 	cors := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"},
-		Debug:          true,
 	})
 
-	//_ = ctrl
-	//<-time.After(5 * time.Second)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 
 	http.Handle("/graphql", cors.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

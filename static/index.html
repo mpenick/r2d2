@@ -22,8 +22,8 @@
 				background: url("images/forward.png") no-repeat scroll center center / 100% auto rgba(0, 0, 0, 0);
 				content: "";
 				display: inline-block;
-				height: 30px;
-				width: 30px;
+				height: 64px;
+				width: 64px;
 				position: relative;
 				vertical-align: middle;
 			}
@@ -31,8 +31,8 @@
 				background: url("images/backward.png") no-repeat scroll center center / 100% auto rgba(0, 0, 0, 0);
 				content: "";
 				display: inline-block;
-				height: 30px;
-				width: 30px;
+				height: 64px;
+				width: 64px;
 				position: relative;
 				vertical-align: middle;
 			}
@@ -40,8 +40,8 @@
 				background: url("images/turn-left.png") no-repeat scroll center center / 100% auto rgba(0, 0, 0, 0);
 				content: "";
 				display: inline-block;
-				height: 30px;
-				width: 30px;
+				height: 64px;
+				width: 64px;
 				position: relative;
 				vertical-align: middle;
 			}
@@ -49,8 +49,8 @@
 				background: url("images/turn-right.png") no-repeat scroll center center / 100% auto rgba(0, 0, 0, 0);
 				content: "";
 				display: inline-block;
-				height: 30px;
-				width: 30px;
+				height: 64px;
+				width: 64px;
 				position: relative;
 				vertical-align: middle;
 			}
@@ -110,8 +110,8 @@
 		}
 		const apolloClient = new Apollo.lib.ApolloClient({
 		  networkInterface: Apollo.lib.createNetworkInterface({
-		    uri: 'http://localhost:8080/graphql',
-		    transportBatching: true,
+			uri: '/graphql',
+			  transportBatching: true,
 		  }),
 		  connectToDevTools: true,
 		})

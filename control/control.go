@@ -52,7 +52,7 @@ func NewControl() (*Control, error) {
 		}),
 		gatt.PeripheralConnected(func(p gatt.Peripheral, err error) {
 			ctrl := &Control{
-				cmds:           make(chan Move, 100),
+				cmds:           make(chan Move, 5),
 				peripheral:     p,
 				characteristic: findBitsnapControl(p),
 			}
