@@ -1,6 +1,23 @@
 <html>
 	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<style>
+			.left, .right {
+				float: left;
+				width: 45%; /* The width is 20%, by default */
+			}
+
+			.main {
+				float: left;
+				width: 10%; /* The width is 60%, by default */
+			}
+
+			/* Use a media query to add a breakpoint at 800px: */
+			@media screen and (max-width: 800px) {
+				.left, .main, .right {
+					width: 100%; /* The width is 100%, when the viewport is 800px or smaller */
+				}
+			}
 			.forward:before {
 				background: url("images/forward.png") no-repeat scroll center center / 100% auto rgba(0, 0, 0, 0);
 				content: "";
@@ -19,7 +36,7 @@
 				position: relative;
 				vertical-align: middle;
 			}
-			.left:before {
+			.turn-left:before {
 				background: url("images/turn-left.png") no-repeat scroll center center / 100% auto rgba(0, 0, 0, 0);
 				content: "";
 				display: inline-block;
@@ -28,7 +45,7 @@
 				position: relative;
 				vertical-align: middle;
 			}
-			.right:before {
+			.turn-right:before {
 				background: url("images/turn-right.png") no-repeat scroll center center / 100% auto rgba(0, 0, 0, 0);
 				content: "";
 				display: inline-block;
@@ -42,10 +59,10 @@
 	<body>
 		<script src="https://unpkg.com/apollo-client-browser@1.9.0"></script>
 
-        <table>
-            <tr><td></td><td><button onclick="forward()" class="button forward"></button></td><td></td></tr>
-			<tr><td><button onclick="left()" class="button left"></button></td><td></td><td><button onclick="right()" class="button right"></button></td></tr>
-			<tr><td></td><td><button onclick="backward()" class="button backward"></button></td><td></td></tr>
+        <table class="main">
+            <tr><td></td><td><a href="javascript:forward()" class="button forward"></a></td><td></td></tr>
+			<tr><td><a href="javascript:left()" class="button turn-left"></a></td><td></td><td><a href="javascript:right()" class="button turn-right"></a></td></tr>
+			<tr><td></td><td><a href="javascript:backward()" class="button backward"></a></td><td></td></tr>
 		</table>
 		<div id="content"/>
 		<script>
@@ -54,37 +71,42 @@
   			  (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
   			);
 		}
-		function forward() {
-			console.log("forward")
+		function cookie(key) {
+			if (!document.cookie) {
+				document.cookie = "user=" + uuid() + ";";
+			}
+			//document.getElementById("content").innerHTML = document.cookie
+			let value = ('; '+document.cookie).split('; '+key+'=').pop().split(';').shift();
+			return value
+		}
+		function move(type) {
 			apolloClient.mutate({
-				mutation: Apollo.gql`mutation { move(type:FORWARD) }`
+				mutation: Apollo.gql`mutation Move($type: MoveType, $user: String!) {
+						move(type:$type, user:$user)
+					}`,
+				variables: {
+					type: type,
+					user: cookie("user")
+				}
 			}).then(result => {
 				console.log(result)
 			})
+		}
+		function forward() {
+			console.log("forward");
+            move("FORWARD");
 		}
 		function left() {
-			console.log("left")
-			apolloClient.mutate({
-				mutation: Apollo.gql`mutation { move(type:LEFT) }`
-			}).then(result => {
-				console.log(result)
-			})
+			console.log("left");
+			move("LEFT");
 		}
 		function right() {
-			console.log("right")
-			apolloClient.mutate({
-				mutation: Apollo.gql`mutation { move(type:RIGHT) }`
-			}).then(result => {
-				console.log(result)
-			})
+			console.log("right");
+			move("RIGHT");
 		}
 		function backward() {
-			console.log("backward")
-			apolloClient.mutate({
-				mutation: Apollo.gql`mutation { move(type:BACKWARD) }`
-			}).then(result => {
-				console.log(result)
-			})
+			console.log("backward");
+			move("BACKWARD");
 		}
 		const apolloClient = new Apollo.lib.ApolloClient({
 		  networkInterface: Apollo.lib.createNetworkInterface({
@@ -93,10 +115,6 @@
 		  }),
 		  connectToDevTools: true,
 		})
-		if (!document.cookie) {
-			document.cookie = "user=" + uuid();
-		}
-		document.getElementById("content").innerHTML = document.cookie
 		</script>
 	</body>
 </html>

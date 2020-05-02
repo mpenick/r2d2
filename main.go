@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/graphql-go/graphql"
 	"github.com/mpenick/robot/control"
+	"github.com/rs/cors"
 	"log"
 	"net/http"
 )
@@ -12,15 +13,16 @@ var ctrl *control.Control
 
 type requestBody struct {
 	Query string `json:"query"`
+	Variables map[string]interface{} `json:"variables"`
 }
 
 var moveType = graphql.NewEnum(graphql.EnumConfig{
 	Name: "MoveType",
 	Values: graphql.EnumValueConfigMap{
-		"FORWARD": &graphql.EnumValueConfig{Value: control.Forward },
+		"FORWARD":  &graphql.EnumValueConfig{Value: control.Forward},
 		"BACKWARD": &graphql.EnumValueConfig{Value: control.Backward},
-		"LEFT": &graphql.EnumValueConfig{Value: control.Left },
-		"RIGHT": &graphql.EnumValueConfig{Value: control.Right },
+		"LEFT":     &graphql.EnumValueConfig{Value: control.Left},
+		"RIGHT":    &graphql.EnumValueConfig{Value: control.Right},
 	},
 })
 
@@ -45,9 +47,12 @@ var mutationType = graphql.NewObject(graphql.ObjectConfig{
 				"type": &graphql.ArgumentConfig{
 					Type: moveType,
 				},
+				"user": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(graphql.String),
+				},
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				ctrl.Move(p.Args["type"].(control.Move))
+				//ctrl.Move(p.Args["type"].(control.Move))
 				return make([]control.Move, 0), nil
 			},
 		},
@@ -56,24 +61,34 @@ var mutationType = graphql.NewObject(graphql.ObjectConfig{
 
 var schema, _ = graphql.NewSchema(
 	graphql.SchemaConfig{
-		Query: queryType,
+		Query:    queryType,
 		Mutation: mutationType,
 	})
 
 func main() {
 	var err error
-	ctrl, err = control.NewControl()
+	//ctrl, err = control.NewControl()
 	if err != nil {
 		log.Fatalf("unable to create robot control: %v", err)
 	}
+
+	cors := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+		Debug:          true,
+	})
+
 	//_ = ctrl
 	//<-time.After(5 * time.Second)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
-	http.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
+
+	http.Handle("/graphql", cors.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Body == nil {
 			http.Error(w, "no request body", 400)
 			return
 		}
+
+		cookie := r.Header["Cookie"]
+		_ = cookie
 
 		var body requestBody
 		err := json.NewDecoder(r.Body).Decode(&body)
@@ -83,13 +98,13 @@ func main() {
 		}
 
 		result := graphql.Do(graphql.Params{
-			Schema:         schema,
-			RequestString:  body.Query,
-			Context:        r.Context(),
+			Schema:        schema,
+			RequestString: body.Query,
+			Context:       r.Context(),
+			VariableValues: body.Variables,
 		})
 		json.NewEncoder(w).Encode(result)
 
-	})
+	})))
 	http.ListenAndServe(":8080", nil)
 }
-
